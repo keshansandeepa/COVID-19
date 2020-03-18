@@ -2,7 +2,7 @@
 <html xmlns:th="https://www.thymeleaf.org" lang="en">
 <head lang="en">
     <meta charset="UTF-8"/>
-    <title>News Portal</title>
+    <title>Alerts Portal</title>
     <meta name="viewport" content="width=device-width">
     <link href="https://unpkg.com/tailwindcss@^1.0/dist/tailwind.min.css" rel="stylesheet">
     <link th:href="@{/main.css}" rel="stylesheet">
@@ -33,8 +33,8 @@
                 </div>
                 <div class="hidden sm:block sm:ml-6">
                     <div class="flex">
-                        <a href="#" class="px-3 py-2 rounded-md text-sm font-medium leading-5 text-white bg-gray-900 focus:outline-none focus:text-white focus:bg-gray-700 transition duration-150 ease-in-out">Send News</a>
-                        <a href="#" class="ml-4 px-3 py-2 rounded-md text-sm font-medium leading-5 text-gray-300 hover:text-white hover:bg-gray-700 focus:outline-none focus:text-white focus:bg-gray-700 transition duration-150 ease-in-out">Send Case</a>
+                         <a href="/portal/news" class="px-3 py-2 rounded-md text-sm font-medium leading-5 text-white bg-gray-900 focus:outline-none focus:text-white focus:bg-gray-700 transition duration-150 ease-in-out">Send Alerts</a>
+                        <a href="/portal/cases" class="ml-4 px-3 py-2 rounded-md text-sm font-medium leading-5 text-gray-300 hover:text-white hover:bg-gray-700 focus:outline-none focus:text-white focus:bg-gray-700 transition duration-150 ease-in-out">Send Case</a>
                     </div>
                 </div>
             </div>
@@ -53,7 +53,7 @@
                     </div>
                     <div x-show="open" x-transition:enter="transition ease-out duration-100" x-transition:enter-start="transform opacity-0 scale-95" x-transition:enter-end="transform opacity-100 scale-100" x-transition:leave="transition ease-in duration-75" x-transition:leave-start="transform opacity-100 scale-100" x-transition:leave-end="transform opacity-0 scale-95" class="origin-top-right absolute right-0 mt-2 w-48 rounded-md shadow-lg">
                         <div class="py-1 rounded-md bg-white shadow-xs">
-                            <a href="#" class="block px-4 py-2 text-sm leading-5 text-gray-700 hover:bg-gray-100 focus:outline-none focus:bg-gray-100 transition duration-150 ease-in-out">Sign out</a>
+                            <a href="/portal/logout" class="block px-4 py-2 text-sm leading-5 text-gray-700 hover:bg-gray-100 focus:outline-none focus:bg-gray-100 transition duration-150 ease-in-out">Sign out</a>
                         </div>
                     </div>
                 </div>
@@ -71,17 +71,17 @@
 
 <!--Main Wrapper-->
 
-<div class="flex flex-col container max-w-6xl  mx-auto bg-gray-50 py-12 px-3 sm:px-6 lg:px-8">
+<div id="app" class="flex flex-col container max-w-6xl  mx-auto bg-gray-50 py-12 px-3 sm:px-6 lg:px-8">
     <div class="w-full flex flex-col mt-10">
         <div>
-            <h1 class="text-4xl font-bold">News Portal</h1>
+            <h1 class="text-4xl font-bold">Alerts Portal</h1>
         </div>
         <div class="mt-2">
-            <span class="text-base text-gray-600">Insert News Regarding Corona Virus</span>
+            <span class="text-base text-gray-600">Add Alerts Regarding Corona Virus</span>
         </div>
         <hr class="mt-5">
     </div>
-        <form action="" method="post">
+        <form @submit.prevent="saveAlerts" method="post">
             <div class="w-full mt-5">
                 <div class="border box-border rounded shadow-md pt-2">
                     <h2 class= "bg-white mt-2 px-8 text-left text-2xl leading-9 font-extrabold text-gray-900">
@@ -90,29 +90,29 @@
                         <div class="flex mt-2  py-4 flex-col w-full bg-gray-200 px-4">
                             <!--Title Input-->
                             <div class="mt-2">
-                                <label class="px-4 text-xl text-gray-800 w-full " for="title">Title**</label>
+                                <label class="px-4 text-xl text-gray-800 w-full " for="title">Title<span class="text-red-400">**</span></label>
                                 <div class="px-4">
                                     <input class=" bg-white appearance-none border-2 border-gray-200 rounded w-full py-2 mt-2 px-4 text-gray-700 leading-tight focus:outline-none focus:outline-none focus:shadow-outline-blue focus:border-blue-300 focus:z-10 sm:text-sm sm:leading-5"
-                                           type="text" placeholder="Title" id="title" required>
+                                           type="text" placeholder="Title" name="title" id="title" v-model="alert.title" required>
                                 </div>
                             </div>
 
                             <!--SubTitle Input-->
                             <div class="mt-2">
-                                <label class="px-4 text-xl text-gray-800 w-full " for="sub_title">Sub Title**</label>
+                                <label class="px-4 text-xl text-gray-800 w-full " for="sub_title">Sub Title<span class="text-red-400">**</span></label>
                                 <div class="px-4">
                                     <input
                                             class=" bg-white appearance-none border-2 border-gray-200 rounded w-full py-2 mt-2 px-4 text-gray-700 leading-tight focus:outline-none focus:outline-none focus:shadow-outline-blue focus:border-blue-300 focus:z-10 sm:text-sm sm:leading-5"
-                                            type="text" placeholder="Sub title" id="sub_title" required>
+                                            type="text" placeholder="Sub title"  name="subtitle" id="sub_title" v-model="alert.subtitle">
                                 </div>
                             </div>
 
                             <!--Source Input-->
                             <div class="mt-2">
-                                <label class="px-4 text-xl text-gray-800 w-full " for="source">Source**</label>
+                                <label class="px-4 text-xl text-gray-800 w-full " for="source">Source<span class="text-red-400">**</span></label>
                                 <div class="px-4">
                                     <input class=" bg-white appearance-none border-2 border-gray-200 rounded w-full py-2 mt-2 px-4 text-gray-700 leading-tight focus:outline-none focus:outline-none focus:shadow-outline-blue focus:border-blue-300 focus:z-10 sm:text-sm sm:leading-5"
-                                           type="text" placeholder="Source" id="source" required>
+                                           type="text" placeholder="Source" id="source"   name="source"  required  v-model="alert.source">
                                 </div>
                             </div>
                         </div>
@@ -124,10 +124,10 @@
                     <div class="flex mt-2  py-4 flex-col w-full bg-gray-200 px-4">
                         <!--Description Input-->
                         <div class="mt-8">
-                            <label class="px-4 text-xl text-gray-800 w-full" for="english_description">English Description**</label>
+                            <label class="px-4 text-xl text-gray-800 w-full" for="english_description">English Description<span class="text-red-400">**</span></label>
                             <div class="px-4">
                                     <textarea rows="10" class=" bg-white appearance-none border-2 border-gray-200 rounded w-full py-2 mt-2 px-4 text-gray-700 leading-tight focus:outline-none focus:outline-none focus:shadow-outline-blue focus:border-blue-300 focus:z-10 sm:text-sm sm:leading-5"
-                                              type="text" placeholder="description" id="english_description" required></textarea>
+                                              type="text" placeholder="description" id="english_description" required name="messageEn"   v-model="alert.messageEn"></textarea>
                             </div>
                         </div>
                     </div>
@@ -143,7 +143,7 @@
                             <label class="px-4 text-xl text-gray-800 w-full" for="sinhala_description">Sinhala Description</label>
                             <div class="px-4">
                                     <textarea rows="10" class=" bg-white appearance-none border-2 border-gray-200 rounded w-full py-2 mt-2 px-4 text-gray-700 leading-tight focus:outline-none focus:outline-none focus:shadow-outline-blue focus:border-blue-300 focus:z-10 sm:text-sm sm:leading-5"
-                                              type="text" placeholder="sinhala_description" id="sinhala_description"></textarea>
+                                              type="text" placeholder="sinhala_description" id="sinhala_description"  name="messageSi"   v-model="alert.messageSi"></textarea>
                             </div>
                         </div>
                     </div>
@@ -160,13 +160,13 @@
                             <label class="px-4 text-xl text-gray-800 w-full" for="tamil_description">Tamil Description</label>
                             <div class="px-4">
                                     <textarea rows="10" class=" bg-white appearance-none border-2 border-gray-200 rounded w-full py-2 mt-2 px-4 text-gray-700 leading-tight focus:outline-none focus:outline-none focus:shadow-outline-blue focus:border-blue-300 focus:z-10 sm:text-sm sm:leading-5"
-                                              type="text" placeholder="description" id="tamil_description"></textarea>
+                                              type="text" placeholder="description" id="tamil_description" v-model="alert.messageTa"  name="messageTa" ></textarea>
                             </div>
                         </div>
                         <!--Submit Button-->
                         <div class="mt-8 flex justify-end px-4">
                             <button type="submit"class="bg-white hover:bg-gray-100 text-gray-800 font-semibold py-2 px-4 border border-gray-400 rounded shadow">
-                                Add News
+                                Add Alerts
                             </button>
                         </div>
                     </div>
@@ -178,4 +178,5 @@
 
 <!--Main Wrapper Ends Here-->
 </body>
+<script th:src="@{/js/alerts.js}"></script>
 </html>
