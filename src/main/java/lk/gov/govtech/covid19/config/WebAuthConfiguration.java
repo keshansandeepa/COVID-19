@@ -27,19 +27,36 @@ public class WebAuthConfiguration extends WebSecurityConfigurerAdapter {
 
     @Override
     protected void configure(final HttpSecurity http) throws Exception {
-        http //TODO: following disables auth for GET and POST, has to be removed
+        /*
+        * Endpoints without auth
+        * - /application/** (all were GETs)
+        * - /dhis/** (includes both POSTS and GETs)
+        *
+        * Endpoints with auth: either http basic auth or login (/portal) based can be used
+        * - /notification/alert/add
+        * - /notification/case/add
+        * - /portal/**
+        *
+        * */
+        http
             .authorizeRequests()
-                .mvcMatchers("/**")
+                .mvcMatchers( // to exclude auth for GETs
+                        APPLICATION_API_CONTEXT +"/**",
+                        DHIS_API_CONTEXT + "/**")
                 .permitAll()
                 .and()
             .authorizeRequests()
-                .antMatchers(HttpMethod.POST, "/**")
+                .antMatchers(HttpMethod.POST, // to exclude auth for POSTs
+                        DHIS_API_CONTEXT + "/**")
                 .permitAll()
                 .and()
             .csrf().disable()
 
             .authorizeRequests()
-                .mvcMatchers(PORTAL_API_CONTEXT + "/**")
+                .mvcMatchers(
+                        "/notification/alert/add",
+                        "/notification/case/add",
+                        PORTAL_API_CONTEXT + "/**")
                 .hasRole("USER")
                 .and()
             .httpBasic()
@@ -47,12 +64,12 @@ public class WebAuthConfiguration extends WebSecurityConfigurerAdapter {
             .formLogin()
                 .loginPage(PORTAL_API_CONTEXT)
                 .permitAll()
-                .defaultSuccessUrl(PORTAL_API_CONTEXT + NEWS_PATH)
+                .defaultSuccessUrl(PORTAL_API_CONTEXT + NEWS_PATH) //redirects once successful
                 .and()
             .logout()
                 .logoutRequestMatcher(new AntPathRequestMatcher(PORTAL_API_CONTEXT + "/logout")) //logs out with a GET
                 .permitAll()
-                .logoutSuccessUrl(PORTAL_API_CONTEXT);
+                .logoutSuccessUrl(PORTAL_API_CONTEXT); //redirects once successful
     }
 
     @Override

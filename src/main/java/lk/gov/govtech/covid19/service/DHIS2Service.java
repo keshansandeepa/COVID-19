@@ -31,6 +31,7 @@ import org.apache.commons.httpclient.methods.multipart.FilePart;
 import org.apache.commons.httpclient.methods.multipart.MultipartRequestEntity;
 import org.apache.commons.httpclient.methods.multipart.Part;
 import org.apache.commons.httpclient.params.HttpMethodParams;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -64,6 +65,13 @@ public class DHIS2Service {
     private final static SimpleDateFormat FPI_DATEFORMAT = new SimpleDateFormat("yyyy-MM-dd");
     private final static SimpleDateFormat DHIS2_DATETIMEFORMAT = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSZ");
     private final static SimpleDateFormat DHIS2_DATEFORMAT = new SimpleDateFormat("yyyy-MM-dd");
+    
+    private HttpClient httpClient;
+    
+    public DHIS2Service() {
+        this.httpClient = new HttpClient(new MultiThreadedHttpConnectionManager());
+        this.httpClient.getParams().setParameter("http.connection.stalecheck", new Boolean(true));
+    }
 
     public DHISResponse getEntityTypes() {
 
@@ -251,10 +259,7 @@ public class DHIS2Service {
     }
 
     private HttpClient getHttpClient() {
-
-        HttpClient httpClient = new HttpClient(new MultiThreadedHttpConnectionManager());
-        httpClient.getParams().setParameter("http.connection.stalecheck", new Boolean(true));
-        return httpClient;
+        return this.httpClient;
     }
     
     private List<FlightPassengerInformation> getInfoBorderPassengerList(String flightNo, 
@@ -331,20 +336,85 @@ public class DHIS2Service {
     }
     
     private String generateFullName(PassengerInformation pinfo) {
-        String fullName = pinfo.getGivenName() == null ? "" : pinfo.getGivenName();
-        fullName += " " + (pinfo.getMiddleName() == null ? "" : pinfo.getMiddleName());
-        fullName = fullName.trim();
-        if (fullName.isEmpty()) {
-            fullName = pinfo.getInitials() == null ? "" : pinfo.getInitials();
+        List<String> comps = new ArrayList<>();
+        if (StringUtils.isNotEmpty(pinfo.getInitials())) {
+            comps.add(pinfo.getInitials());
         }
-        fullName += " " + pinfo.getSurname();
-        fullName = fullName.trim();
-        if (fullName.isEmpty()) {
-            fullName = null;
+        if (StringUtils.isNotEmpty(pinfo.getGivenName())) {
+            comps.add(pinfo.getGivenName());
         }
-        return fullName;
+        if (StringUtils.isNotEmpty(pinfo.getMiddleName())) {
+            comps.add(pinfo.getMiddleName());
+        }
+        if (StringUtils.isNotEmpty(pinfo.getSurname())) {
+            comps.add(pinfo.getSurname());
+        }
+        if (!comps.isEmpty()) {
+            return String.join(" ", comps);
+        } else {
+            return null;
+        }
     }
     
+    private String generateAddressAttributeValue(FlightPassengerInformation fpInfo) {
+        List<AddressInformation> addrInfos = fpInfo.getAddressInformation();
+        if (addrInfos == null) {
+            return null;
+        }
+        List<String> addrInfoStrings = new ArrayList<>();
+        for (AddressInformation addrInfo : addrInfos) {
+            String address = addrInfo.toString();
+            if (StringUtils.isNotEmpty(address)) {
+                addrInfoStrings.add(address);
+            }
+        }
+        if (!addrInfoStrings.isEmpty()) {
+            return String.join("\n\n", addrInfoStrings);
+        } else {
+            return null;
+        }
+    }
+    
+    private boolean isNumberSriLankan(String number) {
+        if (StringUtils.isEmpty(number)) {
+            return false;
+        }
+        number = number.trim();
+        if (number.startsWith("00")) {
+            return number.startsWith("0094");
+        }
+        if (number.startsWith("+")) {
+            return number.startsWith("+94");
+        }
+        // at the end, if it's just some ten digit number, our first guess it's Sri Lankan
+        return number.length() == 10;
+    }
+    
+    private String[] generateLocalForeignTelNumberValues(FlightPassengerInformation fpInfo) {
+        String[] telNos = new String[2]; // [0] - local, [1] - foreign
+        // additional multiple numbers will be stored comma separated in the foreign phone number value
+        List<ContactNumber> contactNumbers = fpInfo.getContactNumbers();
+        if (contactNumbers == null) {
+            return telNos;
+        }
+        List<String> additionalNumbers = new ArrayList<String>();
+        for (ContactNumber contactNumber : contactNumbers) {
+            String number = contactNumber.getContactNumber();
+            if (StringUtils.isEmpty(number)) {
+                continue;
+            }
+            if (this.isNumberSriLankan(number) && StringUtils.isEmpty(telNos[0])) {
+                telNos[0] = number;
+            } else {
+                additionalNumbers.add(number);
+            }
+        }
+        if (!additionalNumbers.isEmpty()) {
+            telNos[1] = String.join(",", additionalNumbers);
+        }
+        return telNos;
+    }
+        
     private List<Attribute> generateFPInfoAttrs(FlightPassengerInformation fpInfo) {
         List<Attribute> attrs = new ArrayList<Attribute>();
         PassengerInformation pinfo = fpInfo.getPassengerInformation();
@@ -355,14 +425,18 @@ public class DHIS2Service {
         attrs.add(attr(DHIS2Constants.UID_ATTR_GENDER, pinfo.getGender()));
         attrs.add(attr(DHIS2Constants.UID_ATTR_EMAIL, pinfo.getEmailAddress()));
         attrs.add(attr(DHIS2Constants.UID_ATTR_FULLNAME, this.generateFullName(pinfo)));
+        attrs.add(attr(DHIS2Constants.UID_ATTR_FULLADDRESS_SRILANKA, this.generateAddressAttributeValue(fpInfo)));
+        String[] localForeignTelNos = this.generateLocalForeignTelNumberValues(fpInfo);
+        attrs.add(attr(DHIS2Constants.UID_ATTR_TEL_SRILANKA, localForeignTelNos[0]));
+        attrs.add(attr(DHIS2Constants.UID_ATTR_TEL_FOREIGN, localForeignTelNos[1])); 
         return attrs;
     }
     
     private String extractTEInstanceId(String content) throws Exception {
         JsonElement el = JsonParser.parseString(content);
         try {
-            return el.getAsJsonObject().get("response").getAsJsonObject().get("importSummaries").getAsJsonArray().get(0)
-                    .getAsJsonObject().get("reference").getAsString();
+            return el.getAsJsonObject().get("response").getAsJsonObject().get("importSummaries").
+                    getAsJsonArray().get(0).getAsJsonObject().get("reference").getAsString();
         } catch (Exception e) {
             throw new Exception("Invalid JSON content for extracting TE instance id: " + content);
         }
@@ -401,10 +475,6 @@ public class DHIS2Service {
     private List<DataElement> generateFPInfoDataElements(FlightPassengerInformation fpInfo) throws Exception {
         List<DataElement> result = new ArrayList<DataElement>();
         PassengerInformation pinfo = fpInfo.getPassengerInformation();
-        //result.add(del(DHIS2Constants.UID_DEL_INITIALS, pinfo.getInitials()));
-        //result.add(del(DHIS2Constants.UID_DEL_SURNAME, pinfo.getSurname()));
-        //result.add(del(DHIS2Constants.UID_DEL_MIDDLENAME, pinfo.getMiddleName()));
-        //result.add(del(DHIS2Constants.UID_DEL_GIVENNAME, pinfo.getGivenName()));
         result.add(del(DHIS2Constants.UID_DEL_COUNTRYOFRESIDENCE, pinfo.getCountryOfResidence()));
         result.add(del(DHIS2Constants.UID_DEL_ARRIVEFROM, pinfo.getArriveFrom()));
         result.add(del(DHIS2Constants.UID_DEL_ARRIVALCARDNUMBER, pinfo.getArrivalCardNumber()));
@@ -462,67 +532,11 @@ public class DHIS2Service {
         event.setDataValues(this.generateFPInfoDataElements(fpInfo));
         return event;
     }
-    
-    private List<Event> generateFPAddressEvents(FlightPassengerInformation fpInfo, 
-            String teInstanceId) throws Exception {
-        List<Event> result = new ArrayList<Event>();
-        List<AddressInformation> addressInfos = fpInfo.getAddressInformation();
-        if (addressInfos == null) {
-            return new ArrayList<Event>(0);
-        }
-        for (AddressInformation addressInfo : addressInfos) {
-            result.add(this.generateFPAddressEvent(addressInfo, teInstanceId));
-        }
-        return result;
-    }
-    
-    private Event generateFPContactNumberEvent(ContactNumber contactNumber, String teInstanceId) throws Exception {
-        Event event = new Event();
-        this.populateCommonEventValues(event, teInstanceId);
-        List<DataElement> dataEls = new ArrayList<DataElement>();
-        dataEls.add(del(DHIS2Constants.UID_DEL_CONTACTNUMBER, contactNumber.getContactNumber()));
-        event.setDataValues(dataEls);
-        return event;
-    }
-    
-    private List<Event> generateFPContactNumberEvents(FlightPassengerInformation fpInfo, 
-            String teInstanceId) throws Exception {
-        List<Event> result = new ArrayList<Event>();
-        List<ContactNumber> contactNumbers = fpInfo.getContactNumbers();
-        if (contactNumbers == null) {
-            return new ArrayList<Event>(0);
-        }
-        for (ContactNumber contactNumber : contactNumbers) {
-            result.add(this.generateFPContactNumberEvent(contactNumber, teInstanceId));
-        }
-        return result;
-    }
-    
-    private List<DataElement> generateFPAddressDataElements(AddressInformation addressInfo) throws Exception {
-        List<DataElement> result = new ArrayList<DataElement>();
-        result.add(del(DHIS2Constants.UID_DEL_FULLADDRESS, addressInfo.getFullAddress()));
-        result.add(del(DHIS2Constants.UID_DEL_ADDRESSLINE1, addressInfo.getAddressLine1()));
-        result.add(del(DHIS2Constants.UID_DEL_ADDRESSLINE2, addressInfo.getAddressLine2()));
-        result.add(del(DHIS2Constants.UID_DEL_CITY, addressInfo.getCity()));
-        result.add(del(DHIS2Constants.UID_DEL_POSTALCODE, addressInfo.getPostalCode()));
-        result.add(del(DHIS2Constants.UID_DEL_STATEPROVINCE, addressInfo.getStateProvince()));
-        result.add(del(DHIS2Constants.UID_DEL_COUNTRY, addressInfo.getCountry()));
-        return result;
-    }
-    
-    private Event generateFPAddressEvent(AddressInformation addressInfo, String teInstanceId) throws Exception {
-        Event event = new Event();
-        this.populateCommonEventValues(event, teInstanceId);
-        event.setDataValues(this.generateFPAddressDataElements(addressInfo));
-        return event;
-    }
         
     private List<Event> generateEvents(FlightPassengerInformation fpInfo, String teInstanceId) throws Exception {
         List<Event> result = new ArrayList<Event>();
         result.add(this.generateFlightInfoEvent(fpInfo, teInstanceId));
         result.add(this.generateFPInfoEvent(fpInfo, teInstanceId));
-        //result.addAll(this.generateFPAddressEvents(fpInfo, teInstanceId));
-        //result.addAll(this.generateFPContactNumberEvents(fpInfo, teInstanceId));
         result.add(this.generateLastDepartureEvent(fpInfo, teInstanceId));
         return result;
     }

@@ -5,7 +5,7 @@
 ## Contributing
 Please keep the following in mind when submitting your valuable contributions 😊
 - Currently, all development is happening out of the master branch, so kindly fork it and make your changes there before submitting a PR.
-- If you've implemented a new API, update the readme and [postman collection](../postman/COVID-19.postman_collection.json). This makes it so much easier for other developers to consume your APIs.
+- If you've implemented a new API, update the readme and [postman collection](../master/postman/COVID-19.postman_collection.json). This makes it so much easier for other developers to consume your APIs.
 - Rebase your code before submitting PRs: `git pull --rebase upstream master` ensures there are no conflicts and keeps the tree clean!
 - Comments are always encouraged - you never know who'll continue to work on your code next, so let's make their life a bit easier shall we 😉
 - Finally, see something wrong or have a suggestion? raise an [issue](https://github.com/azhamn/COVID-19/issues) so we can get working on it right away!
@@ -15,6 +15,9 @@ Please keep the following in mind when submitting your valuable contributions �
 ## How to run
 - install mysql server
 - execute `covid19.sql` on server (execute `covid19_test.sql` to add test data)
+ 
+- replace the `covid-19-lk-dev-firebase-adminsdk.json` file in `/src/main/resources/credentials/` with the private key from Firebase Admin SDK
+
 - build project using `mvn clean install`
 - run using: `mvn spring-boot:run`
 
@@ -92,55 +95,145 @@ POST http://localhost:8000/notification/case/add
 }
 ```
 
----
 #### Get Status
+
 ```
 GET http://localhost:8000/application/dashboard/status
 ```
 
-### FCM-Backend
+If succeeded you should receive following JSON response with code `200`:
 
-## Get started
-
-- replace the `covid-19-lk-dev-firebase-adminsdk.json` file with the actual file
-- replace the `token` in application.yml
-
-## testing
-
-* GET /notification – Trigger sample notification with default values sending 
-- `curl -H "Content-Type: application/json" -X GET http://localhost:8000/notification`
-
-* POST /notification/topic – Send a message to a specific topic
-- `curl -d '{"title":"Hello", "message":"The message...", "topic":"contactTopic"}' -H "Content-Type: application/json" -X POST http://localhost:8000/notification/topic`
-
-* POST /notification/token – Send a message to a specific device (with the token)
-- `curl -d '{"title":"Hey you!", "message":"Watch out!", "token":"cct00ebz8eg:APA91bFcTkFE_0Qafj6nWv5yHxqCLTyxAaqi4QzwsFNLP5M9G78X8Z5UMZTW004q1PUux63Ut-1WMGVToMNTdB3ZfO8lCZlc4lGpxm7LBdWfkhaUxdbpQ5xIO5cAb-w9H2dBLNHT7i-U", "topic": ""}' -H "Content-Type: application/json" -X POST http://localhost:8080/notification/token`
-
-* POST /notification/data – Send a message to a specific topic with additional payload data.
-- `curl -d '{"title":"Hello", "message":"Data message", "topic":"contactTopic"}' -H "Content-Type: application/json" -X POST http://localhost:8000/notification/data`
-
-*If succeeded you should receive following JSON response with code 200:
-
-- `{
-    "status": 200,
-    "message": "Notification has been sent."
-}`
-
-* GET /dashboard/status - Get the status of total case, death case, recovered case and suspect case by Covid-19
-- `curl -H "Content-Type: application/json" -X GET http://localhost:8000/application/dashboard/status`
-
-*If succeeded you should receive following JSON response with code 200:
-
-- `{
+```
+{
     "lk_total_case": 99,
     "lk_recovered_case": 99,
     "lk_total_deaths": 99,
     "lk_total_suspect": 99,
     "last_update_time": "2020-03-17 15:10"
-}`
+}
+```
+---
 
-#Web Portal UI
+## FCM Testing
+
+---
+ #### GET /notification – Trigger sample notification with default values sending 
+```
+curl -H "Content-Type: application/json" -X GET http://localhost:8000/notification
+```
+
+#### POST /notification/topic – Send a message to a specific topic
+
+```
+curl -d '{"title":"Hello", "message":"The message...", "topic":"contactTopic"}' -H "Content-Type: application/json" -X POST http://localhost:8000/notification/topic
+```
+
+#### POST /notification/token – Send a message to a specific device (with the token)
+
+```
+curl -d '{"title":"Hey you!", "message":"Watch out!", "token":"cct00ebz8eg:APA91bFcTkFE_0Qafj6nWv5yHxqCLTyxAaqi4QzwsFNLP5M9G78X8Z5UMZTW004q1PUux63Ut-1WMGVToMNTdB3ZfO8lCZlc4lGpxm7LBdWfkhaUxdbpQ5xIO5cAb-w9H2dBLNHT7i-U", "topic": ""}' -H "Content-Type: application/json" -X POST http://localhost:8080/notification/token
+```
+
+#### POST /notification/data – Send a message to a specific topic with additional payload data.
+
+```
+curl -d '{"title":"Hello", "message":"Data message", "topic":"contactTopic"}' -H "Content-Type: application/json" -X POST http://localhost:8000/notification/data
+```
+
+ #### If succeeded you should receive following JSON response with code 200:
+
+```
+{
+    "status": 200,
+    "message": "Notification has been sent."
+}
+```
+
+
+#### GET /dashboard/status - Get the status of total case, death case, recovered case and suspect case by Covid-19
+```
+curl -H "Content-Type: application/json" -X GET http://localhost:8000/application/dashboard/status`
+```
+
+If succeeded you should receive following JSON response with code 200:
+
+```
+{
+    "lk_total_case": 99,
+    "lk_recovered_case": 99,
+    "lk_total_deaths": 99,
+    "lk_total_suspect": 99,
+    "last_update_time": "2020-03-17 15:10"
+}
+```
+# How to Start The Application as a Service (Ubuntu)
+
+## Step 1 Create a Service
+- *covid-19* : Customizable 
+```bash
+sudo vim /etc/systemd/system/covid-19.service
+```
+Copy/paste the following into the file `/etc/systemd/system/covid-19.service`
+- *WorkingDirectory* : The directory of the application
+- *ExecStart* : The bash script path to start the application
+```bash
+[Unit]
+# Description of the service
+Description= COVID-19 Service
+[Service]
+# The user that should run the service 
+User=green
+# The configuration file application.properties should be here:
+# Change this to your workspace
+WorkingDirectory=/home/green/app-service-test
+#path to executable. 
+#executable is a bash script which calls jar file
+ExecStart=/home/green/app-service-test/service
+SuccessExitStatus=143
+TimeoutStopSec=10
+Restart=on-failure
+RestartSec=5
+[Install]
+WantedBy=multi-user.target
+```
+
+## Step 2: Create a Bash Script to Call The Service
+- *covid19-1.0.0-SNAPSHOT.jar* : jar file name
+```bash
+#!/bin/sh
+/usr/bin/java -jar covid19-1.0.0-SNAPSHOT.jar server application.yml
+```
+Give your script execute permission:
+```bash
+sudo chmod u+x service
+```
+
+## Step 3: Enable/Start/Stop the Service
+
+Enable
+```bash
+sudo systemctl daemon-reload
+sudo systemctl enable covid-19.service
+```
+
+start
+```bash
+sudo systemctl start covid-19
+```
+
+status
+```bash
+sudo systemctl status covid-19
+```
+stop
+```bash
+sudo systemctl stop covid-19
+```
+
+# Web Portal UI
+
 ## Getting started
+
 ### Setting up Build system
 - In order to Setup You need to Run `npm install` to install all the dependencies. 
 - Now Run `npm run watch`.
@@ -151,4 +244,3 @@ GET http://localhost:8000/application/dashboard/status
 - Hit Ctrl+C or just close the command line window to stop the server.
 
 _Happy Contributing!_
-
