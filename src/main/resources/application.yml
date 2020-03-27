@@ -1,5 +1,10 @@
 server:
     port: 8000
+    tomcat:
+        basedir: "tomcat"
+        accesslog:
+            enabled: true
+            directory: access
 
 spring:
     application:
@@ -7,34 +12,21 @@ spring:
     datasource:
         url: jdbc:mysql://127.0.0.1:3306/covid19_db?useUnicode=yes&characterEncoding=UTF-8
         username: root
-        password: root
+        password: keshan
         driver-class: com.mysql.cj.jdbc.Driver
     idhs:
         url: http://43.224.124.234:7080/api
         username: dev
         password: Dev1234#
-        infoBorderUrl: http://localhost:8080
     pid:
         file: application.pid
     portal:
-        username1: dev1@aaa.com
-        password1: dev
-        username2: dev2@aaa.com
-        password2: dev
-        username3: dev3@aaa.com
-        password3: dev
-        username4: dev4@aaa.com
-        password4: dev
+        userCredentials:
+            - [dev1@aaa.com, dev]
+            - [dev2@aaa.com, dev]
     googleapi:
         mapKey: abc
 
-firebase: 
-    configurations:
-        path: credentials/covid-19-lk-dev-firebase-adminsdk.json
-    notifications:
-       topic: 'mobile_message'
-       title: 'Common topic - Hello'
-       message: 'Sending test message'
-       token: ''
-       payloadMessageId: '123'
-       payloadData: 'Hello. This is payload content.'
+firebase:
+    config-path: credentials/covid-19-lk-dev-firebase-adminsdk.json
+    topic: 'mobile_message' #use mobile_message_test for test env

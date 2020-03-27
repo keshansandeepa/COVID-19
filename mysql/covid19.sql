@@ -19,6 +19,8 @@ CREATE TABLE `notification` (
 CREATE TABLE `epid_case` (
   `id` INT NOT NULL AUTO_INCREMENT,
   `case_number` VARCHAR(100) NULL,
+  `is_local` TINYINT(1) NULL,
+  `detected_from` VARCHAR(45) NULL,
   `message_en` VARCHAR(500) NULL,
   `message_si` VARCHAR(500) NULL,
   `message_ta` VARCHAR(500) NULL,
@@ -30,18 +32,10 @@ CREATE TABLE `epid_location` (
   `id` INT NOT NULL AUTO_INCREMENT,
   `case_id` INT NULL,
   `date` DATE NULL,
-  `from` DATETIME NULL,
-  `to` DATETIME NULL,
-  `address` VARCHAR(100) NULL,
+  `area` VARCHAR(100) NULL,
   `longitude` VARCHAR(45) NULL,
   `latitude` VARCHAR(45) NULL,
-  PRIMARY KEY (`id`),
-  INDEX `fk_epid_location_1_idx` (`case_id` ASC),
-  CONSTRAINT `fk_epid_location_1`
-    FOREIGN KEY (`case_id`)
-    REFERENCES `epid_case` (`id`)
-    ON DELETE NO ACTION
-    ON UPDATE NO ACTION);
+  PRIMARY KEY (`id`));
 
 CREATE TABLE `notification_message_type` (
   `id` INT NOT NULL AUTO_INCREMENT,
@@ -50,10 +44,11 @@ CREATE TABLE `notification_message_type` (
   PRIMARY KEY (`id`));
   
 CREATE TABLE `covid_status` (
-  `id` INT NOT NULL PRIMARY KEY,
+  `id` INT NOT NULL PRIMARY KEY AUTO_INCREMENT,
   `lk_total_case` INT NOT NULL,
   `lk_recovered_case` INT NOT NULL,
   `lk_total_deaths` INT NOT NULL,
   `lk_total_suspect` INT NOT NULL,
-  `last_update_time` timestamp default current_timestamp NOT NULL on update current_timestamp
-)
+  `last_update_time` timestamp default current_timestamp NOT NULL on update current_timestamp);
+
+INSERT INTO `covid_status` (`id`,`lk_total_case`,`lk_recovered_case`,`lk_total_deaths`,`lk_total_suspect`,`last_update_time`) VALUES (1,99,99,99,99, NOW());

@@ -13,6 +13,7 @@ public class Constants {
     public static final String PORTAL_API_CONTEXT = "/portal";
     public static final String NEWS_PATH = "/news";
     public static final String CASES_PATH = "/cases";
+    public static final String DASHBOARD_PATH = "/dashboard";
 
     public static final String APPLICATION_API_CONTEXT = "/application";
 
@@ -21,5 +22,4 @@ public class Constants {
     public static final String PUSH_NOTIFICATION_MESSAGE_TYPE_ALERT = "alert";
 
     public static final String PUSH_NOTIFICATION_MESSAGE_TYPE_CASE = "case";
-    public static final String PUSH_NOTIFICATION_TOPIC = "mobile_message";
 }

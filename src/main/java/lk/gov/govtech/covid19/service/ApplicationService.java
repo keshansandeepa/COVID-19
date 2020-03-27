@@ -3,6 +3,7 @@ package lk.gov.govtech.covid19.service;
 import lk.gov.govtech.covid19.dto.AlertNotificationResponse;
 import lk.gov.govtech.covid19.dto.CaseNotificationResponse;
 import lk.gov.govtech.covid19.dto.StatusResponse;
+import lk.gov.govtech.covid19.dto.UpdateStatusRequest;
 import lk.gov.govtech.covid19.model.AlertNotificationEntity;
 import lk.gov.govtech.covid19.model.CaseNotificationEntity;
 import lk.gov.govtech.covid19.model.StatusEntity;
@@ -31,14 +32,14 @@ public class ApplicationService {
                     response.setMessage(notification.getMessageEn());
                     break;
                 case "si":
-                    if (notification.getMessageSi() == null) {
+                    if (notification.getMessageSi().isEmpty()) {
                         response.setMessage(notification.getMessageEn());
                     } else {
                         response.setMessage(notification.getMessageSi());
                     }
                     break;
                 case "ta":
-                    if (notification.getMessageTa() == null) {
+                    if (notification.getMessageTa().isEmpty()) {
                         response.setMessage(notification.getMessageEn());
                     } else {
                         response.setMessage(notification.getMessageTa());
@@ -74,14 +75,14 @@ public class ApplicationService {
                     response.setMessage(notification.getMessageEn());
                     break;
                 case "si":
-                    if (notification.getMessageSi() == null) {
+                    if (notification.getMessageSi().isEmpty()) {
                         response.setMessage(notification.getMessageEn());
                     } else {
                         response.setMessage(notification.getMessageSi());
                     }
                     break;
                 case "ta":
-                    if (notification.getMessageTa() == null) {
+                    if (notification.getMessageTa().isEmpty()) {
                         response.setMessage(notification.getMessageEn());
                     } else {
                         response.setMessage(notification.getMessageTa());
@@ -94,6 +95,8 @@ public class ApplicationService {
 
             response.setId(notification.getId());
             response.setCaseNumber(notification.getCaseNumber());
+            response.setLocal(notification.isLocal());
+            response.setDetectedFrom(notification.getDetectedFrom());
             response.setCreated(notification.getCreated());
             response.setLocations(repository.getCaseNotificationLocations(caseId));
 
@@ -121,6 +124,11 @@ public class ApplicationService {
             response.setLast_update_time(sdf.format(status.getLast_update_time()));
         }
         return response;
+    }
+
+    public void updateStatus(UpdateStatusRequest request) {
+        repository.updateStatus(request);
+
     }
 }
 

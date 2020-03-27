@@ -16,12 +16,29 @@ Please keep the following in mind when submitting your valuable contributions �
 - install mysql server
 - execute `covid19.sql` on server (execute `covid19_test.sql` to add test data)
  
+### Using the Maven Plugin
 - replace the `covid-19-lk-dev-firebase-adminsdk.json` file in `/src/main/resources/credentials/` with the private key from Firebase Admin SDK
-
-- build project using `mvn clean install`
 - run using: `mvn spring-boot:run`
+- change `firebase.topic` in `application.yml` accordingly. `mobile_message` is used for production and `mobile_message_test` is used for testing
 
-### APIs 
+### As a Packaged Application
+- build project using `mvn clean install`
+- copy `application.yml` to the folder where the jar is (`target` if it has not been moved)
+- Replace `/src/main/resources/credentials/covid-19-lk-dev-firebase-adminsdk.json` with a valid credential file.
+- go into the folder where the jar is (eg. `cd target`)
+- run `java -jar covid19-1.0.0-SNAPSHOT.jar`. Check if the jar version matches.
+- NOTE: access logs will get stored in the tomcat folder (tomcat/access/).
+ These logs can be disabled from the application.yml
+ 
+### with Docker
+- build project using `mvn clean install`
+- unzip the `target/covid19-1.0.0-SNAPSHOT.zip` to `target/covid19-1.0.0-SNAPSHOT`
+- modify the db url in the application.yml (replace localhose with container name) as below  (FIXME: automate with spring profiles)
+- `url: jdbc:mysql://db:3306/covid19_db?useUnicode=yes&characterEncoding=UTF-8`
+- run ` docker-compose up -d`  , make sure that ports 8000 and 3306 are not used in the local machine
+- connect to dockerized mysql localhost:3306/covid19_db and execute `covid19.sql` on server (execute `covid19_test.sql` to add test data)
+
+## APIs 
 ----
 #### Get Alert by Id
 
@@ -112,135 +129,35 @@ If succeeded you should receive following JSON response with code `200`:
     "last_update_time": "2020-03-17 15:10"
 }
 ```
----
-
-## FCM Testing
-
----
- #### GET /notification – Trigger sample notification with default values sending 
+----
+#### Update Dashboard Status
 ```
-curl -H "Content-Type: application/json" -X GET http://localhost:8000/notification
-```
+PUT http://localhost:8000/application/dashboard/status
 
-#### POST /notification/topic – Send a message to a specific topic
-
-```
-curl -d '{"title":"Hello", "message":"The message...", "topic":"contactTopic"}' -H "Content-Type: application/json" -X POST http://localhost:8000/notification/topic
-```
-
-#### POST /notification/token – Send a message to a specific device (with the token)
-
-```
-curl -d '{"title":"Hey you!", "message":"Watch out!", "token":"cct00ebz8eg:APA91bFcTkFE_0Qafj6nWv5yHxqCLTyxAaqi4QzwsFNLP5M9G78X8Z5UMZTW004q1PUux63Ut-1WMGVToMNTdB3ZfO8lCZlc4lGpxm7LBdWfkhaUxdbpQ5xIO5cAb-w9H2dBLNHT7i-U", "topic": ""}' -H "Content-Type: application/json" -X POST http://localhost:8080/notification/token
-```
-
-#### POST /notification/data – Send a message to a specific topic with additional payload data.
-
-```
-curl -d '{"title":"Hello", "message":"Data message", "topic":"contactTopic"}' -H "Content-Type: application/json" -X POST http://localhost:8000/notification/data
-```
-
- #### If succeeded you should receive following JSON response with code 200:
-
-```
 {
-    "status": 200,
-    "message": "Notification has been sent."
-}
-```
-
-
-#### GET /dashboard/status - Get the status of total case, death case, recovered case and suspect case by Covid-19
-```
-curl -H "Content-Type: application/json" -X GET http://localhost:8000/application/dashboard/status`
-```
-
-If succeeded you should receive following JSON response with code 200:
-
-```
-{
-    "lk_total_case": 99,
-    "lk_recovered_case": 99,
+    "lk_total_case": 98,
+    "lk_recovered_case": 98,
     "lk_total_deaths": 99,
-    "lk_total_suspect": 99,
-    "last_update_time": "2020-03-17 15:10"
+    "lk_total_suspect": 99
 }
 ```
-# How to Start The Application as a Service (Ubuntu)
 
-## Step 1 Create a Service
-- *covid-19* : Customizable 
-```bash
-sudo vim /etc/systemd/system/covid-19.service
-```
-Copy/paste the following into the file `/etc/systemd/system/covid-19.service`
-- *WorkingDirectory* : The directory of the application
-- *ExecStart* : The bash script path to start the application
-```bash
-[Unit]
-# Description of the service
-Description= COVID-19 Service
-[Service]
-# The user that should run the service 
-User=green
-# The configuration file application.properties should be here:
-# Change this to your workspace
-WorkingDirectory=/home/green/app-service-test
-#path to executable. 
-#executable is a bash script which calls jar file
-ExecStart=/home/green/app-service-test/service
-SuccessExitStatus=143
-TimeoutStopSec=10
-Restart=on-failure
-RestartSec=5
-[Install]
-WantedBy=multi-user.target
-```
+## Web Portal UI
 
-## Step 2: Create a Bash Script to Call The Service
-- *covid19-1.0.0-SNAPSHOT.jar* : jar file name
-```bash
-#!/bin/sh
-/usr/bin/java -jar covid19-1.0.0-SNAPSHOT.jar server application.yml
-```
-Give your script execute permission:
-```bash
-sudo chmod u+x service
-```
+### Getting started
 
-## Step 3: Enable/Start/Stop the Service
-
-Enable
-```bash
-sudo systemctl daemon-reload
-sudo systemctl enable covid-19.service
-```
-
-start
-```bash
-sudo systemctl start covid-19
-```
-
-status
-```bash
-sudo systemctl status covid-19
-```
-stop
-```bash
-sudo systemctl stop covid-19
-```
-
-# Web Portal UI
-
-## Getting started
-
-### Setting up Build system
-- In order to Setup You need to Run `npm install` to install all the dependencies. 
+#### Setting up Build system
+- In order to Setup You need to Run `npm install` to install all the dependencies.
 - Now Run `npm run watch`.
 - All of the following folders are monitored for changes, which will tell the browser to reload automatically after any changes are made:
 `Resources>Js`
 -Now you can edit any html file inside the resource.
 
 - Hit Ctrl+C or just close the command line window to stop the server.
+
+#### Adding a New Web Page
+- Create a html file in `src/main/resources/templates/`
+- Create an endpoint in `WebPortalController` to serve the web page
+- The endpoint must return a string which is the name of the html file (eg. `login` for login.html)
 
 _Happy Contributing!_

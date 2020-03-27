@@ -1,118 +1,223 @@
 import Vue from 'vue'
 import flatPickr from 'vue-flatpickr-component';
-import 'flatpickr/dist/flatpickr.css';
 import VueSweetalert2 from 'vue-sweetalert2';
 import 'sweetalert2/dist/sweetalert2.min.css';
-import VueGoogleAutocomplete from 'vue-google-autocomplete'
+import Vuelidate from 'vuelidate'
+import vSelect from 'vue-select'
+
+Vue.use(Vuelidate);
 
 Vue.use(VueSweetalert2);
+
+Vue.component('v-select', vSelect,{
+    props:['inputId']
+})
+
 const axios = require('axios').default;
+
+import {required,maxLength} from 'vuelidate/lib/validators';
+import cities from'./post_codes'
+
 var app = new Vue({
 
     el: '#app',
     components:{
         flatPickr,
-        VueGoogleAutocomplete
     },
     data: {
+        submitStatus: false,
         config: {
+            noCalendar: true,
             enableTime: true,
             time_24hr: true,
-            dateFormat: "Y-m-d H:i"
-        },
-        address: {
-            'address':''
+            dateFormat: "H:i"
         },
         configDate:{
             enableTime: false,
         },
+
+
         cases:{
             'caseNumber':'',
+            'isLocal':'',
+            'detectedFrom':'',
             'message_en':'',
             'message_si':'',
-            'message_ta':''
+            'message_ta':'',
+
         },
+
+        sl_postal_code: cities,
+
         locations:[
             {
                 'date':'',
-                'from':'',
-                'to':'',
-                'address':'',
+                'area':'',
                 'longitude':'',
-                'latitude':''
+                'latitude':'',
+                 'locationA':'',
+
+
+
             }
         ]
     },
 
+    validations:{
+        cases:{
+            caseNumber:{
+                required,
+                maxLength: maxLength(100)
+            },
 
-    mounted() {
-        // To demonstrate functionality of exposed component functions
-        // Here we make focus on the user input
+
+            isLocal:{
+                required,
+
+            },
+
+            detectedFrom:{
+                required,
+
+            },
+
+
+            message_en:{
+                required,
+                maxLength: maxLength(500)
+            },
+
+            message_si:{
+                maxLength: maxLength(500)
+            },
+
+            message_ta:{
+                maxLength: maxLength(500)
+            },
+
+        },
+
+        locations:{
+            $each:{
+                date:{
+                    required
+                },
+
+                locationA:{
+                    required
+                },
+                area:{
+                    required
+                },
+                longitude:{
+                    required
+                },
+                latitude:{
+                    required
+                }
+
+
+
+            }
+        }
+
+
+
     },
 
+
     methods:{
+
         addLocation(){
             this.locations.push({
                 'date':'',
-                'from':'',
-                'to':'',
-                'address':'',
-                'longitude':'0',
-                'latitude':'0'
+                'area':'',
+                'longitude':'',
+                'latitude':'',
+                'locationA':'',
+
+
             })
         },
 
-        getAddressData: function (addressData, placeResultData, id ,index) {
-            let location = this.locations[id];
-            location.address = placeResultData.formatted_address;
-            location.longitude = addressData.longitude;
-            location.latitude = addressData.latitude;
-            this.locations[id] = location;
-            console.log(this.locations);
+        deleteLocation(index) {
+            this.locations.splice(index, 1)
+
+        },
+        setSelected(inputId,value){
+
+
+            let location = this.locations[inputId];
+            location.area = value.name;
+            location.longitude = value.lon;
+            location.latitude = value.lat;
+            this.locations[inputId] = location;
         },
 
         saveCases(){
-            let url= "/notification/case/add"
-            axios.post(url,{
+            let url= "/notification/case/add";
 
-                   "caseNumber" : this.cases.caseNumber,
+            this.$v.$touch();
+            if (this.$v.$invalid){
+                return
+            }
+            else {
+                this.submitStatus =true;
+                axios.post(url,{
+                        "caseNumber" : this.cases.caseNumber,
+                        "isLocal" : this.cases.isLocal,
+                    "detectedFrom" : this.cases.detectedFrom,
                     "message_en":this.cases.message_en,
-                    "message_si":this.cases.message_si,
-                    "message_ta":this.cases.message_ta,
-                    "locations": this.locations
-                },{
-                    headers:
-                        {
-                            'content-type': 'application/json'
-                        }
-                }
-            ).then(response=>{
-                if(response.status == 202){
+                        "message_si":this.cases.message_si,
+                        "message_ta":this.cases.message_ta,
+                        "locations": this.locations
+                    },{
+                        headers:
+                            {
+                                'content-type': 'application/json'
+                            }
+                    }
+                ).then(response=>{
+                    if(response.status == 202){
 
-                    Vue.swal({
-                        title: 'New Case Report Was Submitted',
-                        icon: 'success'
-                    });
+                        Vue.swal({
+                            title: 'New Case Report Was Submitted',
+                            icon: 'success'
+                        });
 
+                        this.submitStatus = 'OK'
                         this.cases.caseNumber= '';
                         this.cases.message_en= '';
                         this.cases.message_si= '';
                         this.cases.message_ta= '';
+                        this.cases.detectedFrom='';
+                        this.cases.isLocal=''
 
-                    this.locations = [];
-                    this.locations.push({
-                        'date':'',
-                        'from':'',
-                        'to':'',
-                        'address':'',
-                        'longitude':'0',
-                        'latitude':'0'
-                    });
-                    this.$refs.makeAddress.clear();
-                }
-            }).catch(e=>{
-                console.log(e);
-            })
+
+                        this.locations = [];
+                        this.locations.push({
+                            'date':'',
+                            'area':'',
+                            'longitude':'',
+                            'latitude':'',
+                            'locationA':'',
+
+                        });
+                        this.submitStatus =false;
+                        this.$v.$reset()
+
+                    }else if(response.status == 500){
+                        Vue.swal({
+                            title: 'Something Went Wrong!',
+                            icon: 'error'
+                        });
+
+                    }
+                }).catch(e=>{
+                    console.log(e)
+                })
+            }
+
 
         }
 
